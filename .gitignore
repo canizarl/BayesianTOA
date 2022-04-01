@@ -6,9 +6,9 @@
 /traceplots/
 /venv/
 /venv_pycharm/
-./testtest.py
-./test_animation.py
-./*.log
+/*.log
 /.idea/
+/test_animation.py
+/testtest.py
 
 
