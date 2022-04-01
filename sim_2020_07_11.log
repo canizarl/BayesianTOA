@@ -1,0 +1,6 @@
+INFO:root:Running on PyMC3 v3.11.4
+INFO:root:Date for Simulation: 2020_07_11 
+INFO:sunpy:Obtained JPL HORIZONS location for Parker Solar Probe (spacecraft)
+INFO:sunpy:Obtained JPL HORIZONS location for Solar Orbiter (spacecraft) (-144
+INFO:sunpy:Obtained JPL HORIZONS location for STEREO-A (spacecraft) (-234)
+INFO:sunpy:Obtained JPL HORIZONS location for Wind (spacecraft) (-8)
