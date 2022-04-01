@@ -1,0 +1,12 @@
+/animations/
+/Downloads/
+/InterpData/
+/logs/
+/MapFigures/
+/traceplots/
+/venv/
+/venv_pycharm/
+./testtest.py
+./test_animation.py
+./*.log
+
