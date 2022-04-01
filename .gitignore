@@ -9,4 +9,4 @@
 ./testtest.py
 ./test_animation.py
 ./*.log
-
+/.idea/
