@@ -7,5 +7,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="Projects" />
+    <orderEntry type="module" module-name="SEMP-master" />
   </component>
 </module>

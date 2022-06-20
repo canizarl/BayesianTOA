@@ -260,9 +260,9 @@ if __name__ == '__main__':
         month = int(sys.argv[1])
         year = int(sys.argv[2])
     else:
-        day = 30
-        month = 8
-        year = 2021
+        day = 5
+        month = 5
+        year = 2022
 
 
 
@@ -314,23 +314,23 @@ if __name__ == '__main__':
     # solarsystem2 = HelioSpacecraftLocation(date=[year, month, day], objects=["psp", "stereo_a", "wind", "solo"])
     # stations_rsun2 = np.array(solarsystem2.locate())
 
-
-
-
-    plt.figure()
-    plt.scatter(stations_rsun[:,0],stations_rsun[:,1])
-    plt.show()
-
-
-
-
-
+    #
+    #
+    #
+    # plt.figure()
+    # plt.scatter(stations_rsun[:,0],stations_rsun[:,1])
+    # plt.show()
+    #
+    #
 
 
 
 
 
 
+
+    #
+    #
     #
     # starttime = dt(year, month, day)
     # endtime = starttime + timedelta(days=spacecraft_orbit_length)
@@ -412,8 +412,8 @@ if __name__ == '__main__':
     #     wind_HEE_x = 0.99 * AU / r_sun
     #     wind_HEE_y = 0
     #     locations.append([wind_HEE_x, wind_HEE_y])
-
-
+    #
+    #
     #
     # fig, ax = plt.subplots()
     # ax.set_aspect('equal')
@@ -489,7 +489,7 @@ if __name__ == '__main__':
     #
     # plt.show()
     #
-
+    #
 
 
 

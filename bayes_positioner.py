@@ -25,7 +25,7 @@ except:
     pass
 
 class BayesianTDOAPositioner:
-    """Class for carrying out Bayesian TDOA positioning.
+    """Class for carrying out Bayesian TOA positioning.
     Requires at least 4 stations (to solve for x,y,v,t1).
     """
     
@@ -33,24 +33,21 @@ class BayesianTDOAPositioner:
                  stations,
                  x_lim=1.5*au.value,# maximum box size (m)
                  v_mu=c.value,# mean of velocity prior (m/s)
-                 v_sd=20,# standard deviation of velocity prior (m/s)
-                 t_sd=60):# standard deviation of observed values (s)
+                 v_sd=(10/100)*c.value,# standard deviation of velocity prior (m/s)
+                 t_cadence=60): # Spacecraft Cadence in seconds
 
-        t_lim = np.sqrt(2)*x_lim/v_mu# resulting max tdoa value, used for t1 limit (s)
+        t_sd = t_cadence / 2  # standard deviation of observed values (s)
+        t_lim =  2*24*60*60#np.sqrt(2)*x_lim/v_mu# resulting max tdoa value, used for t1 limit (s)
         
         # check if well posed
         if len(stations)<4:
             print("WARNING: at least 4 stations recommended for bayesian tdoa positioning!")
-        
-        # assert bounding box is big enough
 
-        #############################################################################################################################################
-        # if np.max(stations) > 0.75*x_lim or np.min(stations) < 0.25*x_lim:
-        #     raise Exception("ERROR: stations are not within bounding box!")
         
         self.x_lim = x_lim
         self.v_mu = v_mu
         self.v_sd = v_sd
+        self.t_cadence = t_cadence
         self.t_sd = t_sd
         self.t_lim = t_lim
         self.stations = stations
@@ -72,24 +69,24 @@ class BayesianTDOAPositioner:
         # assert max tdoa is not larger than t_lim
         if np.max(tdoa) > t_lim: 
             raise Exception("ERROR: tdoa > t_lim")
-            
+
         with pm.Model():
         
             # Priors
             v = pm.TruncatedNormal("v", mu=v_mu, sigma=v_sd, upper=v_mu)
             x = pm.Uniform("x", lower=-x_lim, upper=x_lim, shape=2)          # prior on the source location (m)
-            t0 = pm.Uniform("t0", lower=-0.5*t_lim, upper=t_lim)             # prior on the time offset (s)
+            t0 = pm.Uniform("t0", lower=-t_lim, upper=t_lim)             # prior on the time offset (s)
 
             # Physics
             d = pm.math.sqrt(pm.math.sum((stations - x)**2, axis=1))         # distance between source and receivers
             t1 = d/v                                                         # time of arrival (TOA) of each receiver
-            t = t1-t0                                                        # time difference of arrival (TDOA) from the time offset
+            t = t1-t0                                                        # time of arrival (TOA) from the time offset
             
             # Observations
             #Y_obs = pm.Normal('Y_obs', mu=t, sd=t_sd, observed=tdoa)         # we assume Gaussian noise on the TDOA measurements
             pm.Normal('Y_obs', mu=t, sd=t_sd, observed=tdoa)
             # Posterior sampling
-            #step = pm.Hamilt onianMC()
+            #step = pm.HamiltonianMC()
             trace = pm.sample(draws=draws, tune=tune, chains=chains,cores = cores, target_accept=0.95, init=init, progressbar=progressbar,return_inferencedata=False)#, step=step)# i.e. tune for 1000 samples, then draw 5000 samples
             
             summary = az.summary(trace)
@@ -150,9 +147,23 @@ def triangulate(coords, times,cores=4, progressbar=True, report=0, plot=0):
 
     if plot == 1:
         # trace plot
-        ax, ay = az.plot_trace(trace, compact=False)[1:3, 0]
-        ax.hlines(0.6065 * ax.get_ylim()[1], mu[0] - sd[0], mu[0] + sd[0])  # add mu, sigma lines to x,y plots
-        ay.hlines(0.6065 * ay.get_ylim()[1], mu[1] - sd[1], mu[1] + sd[1])
+        left = 0.125  # the left side of the subplots of the figure
+        right = 0.9  # the right side of the subplots of the figure
+        bottom = 0.1  # the bottom of the subplots of the figure
+        top = 0.9  # the top of the subplots of the figure
+        wspace = 0.2  # the amount of width reserved for blank space between subplots
+        hspace = 0.5  # the amount of height reserved for white space between subplots
+
+        ax = az.plot_trace(trace, compact=False)
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+
+        ax[1, 0].hlines(0.6065 * ax[1, 0].get_ylim()[1], mu[0] - sd[0],
+                        mu[0] + sd[0])  # add mu, sigma lines to x,y plots
+        ax[2, 0].hlines(0.6065 * ax[2, 0].get_ylim()[1], mu[1] - sd[1], mu[1] + sd[1])
+        ax[1, 0].title.set_text('x0')
+        ax[2, 0].title.set_text('x1')
+        ax[1, 1].title.set_text('x0')
+        ax[2, 1].title.set_text('x1')
         # plt.savefig("bayes_positioner_result1.jpg", bbox_inches='tight', pad_inches=0.01, dpi=300)
         # pm.autocorrplot(trace)
         # pm.plot_posterior(trace)
@@ -164,7 +175,7 @@ def triangulate(coords, times,cores=4, progressbar=True, report=0, plot=0):
         plt.scatter(spacecraft[:, 0], spacecraft[:, 1], marker="^", s=80, label="Spacecraft")
         ell = matplotlib.patches.Ellipse(xy=(mu[0] / R_sun.value, mu[1] / R_sun.value),
                                          width=4 * sd[0] / R_sun.value, height=4 * sd[1] / R_sun.value,
-                                         angle=0., color='black', label="Posterior ($2\sigma$)", lw=1.5)
+                                         angle=0., color='black', lw=1.5)
         plt.plot(mu[0] / R_sun.value, mu[1] / R_sun.value, 'k*')
         ell.set_facecolor('none')
         plt.gca().add_patch(ell)
@@ -234,7 +245,7 @@ if __name__ == "__main__":
 
     # TEST STATIONs
     #stations = np.array([[-200, 200], [200, 200], [200, -200], [-200,-200]])
-    # stations = np.array([[-200, 150], [146, 200], [125, -243], [-200,-200]])
+    #stations = np.array([[-200, 150], [146, 200], [125, -243], [-200,-200]])
     #stations = np.array([[700, 0], [546, 600], [525, -743], [600, 600]])
     # stations = np.array([[-26.00710538, -165.30659791], [110.77646426, -174.16680856], [215, 0]])   # 07/10/2020
     #stations = np.array([[-26.00710538, -165.30659791], [110.77646426, -174.16680856], [215, 0]])   # 07/10/2020
@@ -291,35 +302,10 @@ if __name__ == "__main__":
     print(f"t1_pred: {t1_pred}")
     print(f"stations: {stations}")
 
-    # trace plot
-    ax,ay = az.plot_trace(trace, compact=False)[1:3,0]
-    ax.hlines(0.6065*ax.get_ylim()[1], mu[0]-sd[0], mu[0]+sd[0])# add mu, sigma lines to x,y plots
-    ay.hlines(0.6065*ay.get_ylim()[1], mu[1]-sd[1], mu[1]+sd[1])
-    #plt.savefig("bayes_positioner_result1.jpg", bbox_inches='tight', pad_inches=0.01, dpi=300)
-    #pm.autocorrplot(trace)
-    #pm.plot_posterior(trace)
-
-    # local map
-    stations = stations/R_sun.value
-    x_true = x_true/R_sun.value
 
 
-    plt.figure(figsize=(8,8))
-    plt.scatter(stations[:,0], stations[:,1], marker="^", s=80, label="Receivers")
-    plt.scatter(x_true[0], x_true[1], s=40, label="True source position")
-    ell = matplotlib.patches.Ellipse(xy=(mu[0]/R_sun.value, mu[1]/R_sun.value),
-              width=4*sd[0]/R_sun.value, height=4*sd[1]/R_sun.value,
-              angle=0., color='black', label="Posterior ($2\sigma$)", lw=1.5)
-    plt.plot(mu[0]/R_sun.value, mu[1]/R_sun.value,'k*')
-    ell.set_facecolor('none')
-    plt.gca().add_patch(ell)
-    #plt.legend(loc=1)
-    #plt.xlim(-1050, 1050)
-    #plt.ylim(-1050, 1050)
-    plt.xlabel("'HEE - X / $R_{\odot}$'")
-    plt.ylabel("'HEE - Y / $R_{\odot}$'")
-    #plt.savefig("bayes_positioner_result2.jpg", bbox_inches='tight', pad_inches=0.01, dpi=300)
-    plt.show(block=False)
+
+
 
 
 

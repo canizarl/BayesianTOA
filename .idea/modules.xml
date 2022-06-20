@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/BayesianTOA.iml" filepath="$PROJECT_DIR$/.idea/BayesianTOA.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../.idea/Projects.iml" filepath="$PROJECT_DIR$/../.idea/Projects.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../SEMP-master/.idea/SEMP-master.iml" filepath="$PROJECT_DIR$/../SEMP-master/.idea/SEMP-master.iml" />
     </modules>
   </component>
 </project>
