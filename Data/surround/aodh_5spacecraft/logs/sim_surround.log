@@ -1,0 +1,16 @@
+INFO:root:Running on PyMC3 v3.11.5
+INFO:root:Date for Simulation: surround 
+INFO:root: 
+    -------------------REPORT---------------------
+    Positioner Mapping Parallel
+    Grid: X[-200, 300], Y[-250, 250]
+    xres: 5
+    yres: 5
+    totalpixels: 10000
+
+
+    cores: 76
+    Computational cost: 0:37:28.858368
+
+    ----------------END-REPORT---------------------
+    
