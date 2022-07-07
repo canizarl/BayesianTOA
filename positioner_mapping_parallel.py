@@ -168,7 +168,7 @@ def pol2cart(r, phi):
 
 def cart2pol(x,y):
     r = np.sqrt(x**2 + y**2)
-    theta = np.atan(y/x)
+    theta = np.arctan(y/x)
     return(r,theta)
 
 
@@ -319,6 +319,14 @@ def loaddata(filenamef):
     stations = results[3]
 
     return xmapaxis, ymapaxis, delta_obs, stations
+
+def savepickle(results, filename):
+    import pickle
+    with open(filename, 'wb') as outp:
+        pickle.dump(results, outp, pickle.HIGHEST_PROTOCOL)
+
+
+
 
 
 def loadtrackedtypeiii(filenamef):

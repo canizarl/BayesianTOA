@@ -17,6 +17,7 @@ import pymc3 as pm
 from scipy.stats import gaussian_kde
 import arviz as az
 from astropy.constants import c, m_e, R_sun, e, eps0, au
+from math import sqrt, radians
 
 try:
     import heliospacecraftlocation as hsl
@@ -24,7 +25,7 @@ except:
     print("Warning heliospacecraftlocation failed to connect with NASA")
     pass
 
-class BayesianTDOAPositioner:
+class BayesianTOAPositioner:
     """Class for carrying out Bayesian TOA positioning.
     Requires at least 4 stations (to solve for x,y,v,t1).
     """
@@ -37,7 +38,7 @@ class BayesianTDOAPositioner:
                  t_cadence=60): # Spacecraft Cadence in seconds
 
         t_sd = t_cadence / 2  # standard deviation of observed values (s)
-        t_lim =  2*24*60*60#np.sqrt(2)*x_lim/v_mu# resulting max tdoa value, used for t1 limit (s)
+        t_lim =  24*60*60#np.sqrt(2)*x_lim/v_mu# resulting max tdoa value, used for t1 limit (s)
         
         # check if well posed
         if len(stations)<4:
@@ -124,12 +125,12 @@ class BayesianTDOAPositioner:
 
 
 
-def triangulate(coords, times,cores=4, progressbar=True, report=0, plot=0):
+def triangulate(coords, times,t_cadence=60, cores=4, progressbar=True, report=0, plot=0):
     """"
     Input: spacecraft : array (Nx2) N is number of stations
         First column is time, Second column is location.
     """
-    B = BayesianTDOAPositioner(coords)
+    B = BayesianTOAPositioner(coords, t_cadence=t_cadence)
     trace, summary, _, _ = B.sample(times, draws=2000, tune=2000, chains=4, cores=cores, progressbar=progressbar)
 
 
@@ -189,7 +190,7 @@ def triangulate(coords, times,cores=4, progressbar=True, report=0, plot=0):
 
     return mu, sd, t1_pred, trace, summary
 
-def animation_frame(xy):
+def animation_frame(xy, t_cadence):
 
     x, y = xy
     x_true = np.array([x * R_sun.value, y * R_sun.value])  # true source position (m)
@@ -204,7 +205,7 @@ def animation_frame(xy):
 
     # sample
     np.random.seed(1)
-    B = BayesianTDOAPositioner(stations)
+    B = BayesianTOAPositioner(stations, t_cadence=t_cadence)
     trace, summary, _, _ = B.sample(t_obs, draws=2000, tune=2000, chains=4)
 
     # analysis
@@ -234,6 +235,8 @@ def animation_frame(xy):
 
 
 if __name__ == "__main__":
+    __spec__ = "ModuleSpec(name='builtins', loader=<class '_frozen_importlib.BuiltinImporter'>)"
+
     print('Running on PyMC3 v{}'.format(pm.__version__))
     save_vid = False
     
@@ -241,6 +244,7 @@ if __name__ == "__main__":
     N_STATIONS = 4
     np.random.seed(1)
     stations = np.random.randint(-200,200, size=(N_STATIONS,2))# station positions (m)
+
 
 
     # TEST STATIONs
@@ -262,8 +266,19 @@ if __name__ == "__main__":
 
 
 
-    stations = stations*R_sun.value
+    # SURROUND
+    #############################################################################
+    L1 = [0.99 * (au / R_sun), 0]
+    L4 = [(au / R_sun) * np.cos(radians(60)), (au / R_sun) * np.sin(radians(60))]
+    L5 = [(au / R_sun) * np.cos(radians(60)), -(au / R_sun) * np.sin(radians(60))]
+    ahead = [0, (au / R_sun)]
+    behind = [0, -(au / R_sun)]
 
+    stations_rsun = np.array([L1, L4, L5, ahead, behind])
+    stations = stations_rsun
+    N_STATIONS = len(stations)
+    #############################################################################
+    stations = stations*R_sun.value
 
 
     x_true = np.array([1*R_sun.value,1.2*R_sun.value])# true source position (m)
@@ -274,25 +289,10 @@ if __name__ == "__main__":
     # t_obs = t1_true-t0_true# true time difference of arrival values
     t_obs = t1_true
     np.random.seed(1)
-    # t_obs = t_obs+0.05*np.random.randn(*t_obs.shape)# noisy observations
+    t_obs = t_obs+0.05*np.random.randn(*t_obs.shape)# noisy observations
 
 
-    usefunction = 1
-    if usefunction == 0:
-        # sample
-        np.random.seed(1)
-        B = BayesianTDOAPositioner(stations)
-        trace, summary, _, _ = B.sample(t_obs, draws=2000, tune=2000, chains=4)
-
-
-
-        # analysis
-        mu, sd = B.fit_xy_posterior(trace)
-        t1_pred = B.forward(mu)
-
-
-    else:
-        mu, sd, t1_pred, trace, summary = triangulate(stations, t_obs,report=1,plot=1)
+    mu, sd, t1_pred, trace, summary = triangulate(stations, t_obs,report=1,plot=1, t_cadence = 60)
 
     # report
     print(summary)
@@ -310,10 +310,10 @@ if __name__ == "__main__":
 
 
 
-    ### Take 2
+    ## Take 2
 
     # local map
-    #
+
     # figure, axs = plt.subplots(figsize=(10,10))
     # axs.set_aspect('equal')
     # axs.scatter(stations[:,0], stations[:,1], marker="^", s=80, label="Receivers")
@@ -339,7 +339,7 @@ if __name__ == "__main__":
     #
     # no_of_frames = 100
     # frames_burst = np.column_stack((np.linspace(0, -300, no_of_frames), np.linspace(0, 500, no_of_frames)))
-    # animation = FuncAnimation(figure, func=animation_frame, frames=frames_burst, interval=10)
+    # animation = FuncAnimation(figure, func=animation_frame, frames=(frames_burst,t_cadence), interval=10)
     #
     # Writer = writers["ffmpeg"]
     # writer = Writer(fps=15, metadata={'artist': 'Me'}, bitrate=1800)
